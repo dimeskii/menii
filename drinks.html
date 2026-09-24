@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>VOI — Drinks</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>   
+
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Jim+Nightshade&family=Lobster&family=Roboto+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preload" as="image" href="food.avif" type="image/avif" fetchpriority="high">
+</head>
+<body>
+
+  <header>
+    <div class="nav-left">
+      <a href="/" class="logo">VOI</a>
+      <a class="nav-order" href="https://www.kart.mk/vendor-detail/OFa7xqpWRLCCbbLE3sGp" target="_blank" rel="noopener">Order Now</a>
+    </div>
+
+    <div class="nav-right">
+      <div class="search-icon-container" aria-label="Search" role="button" tabindex="0"
+          aria-expanded="false" aria-controls="menu-search-panel" id="search-toggle">
+        <div class="search-glass"></div>
+        <div class="search-handle"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="search-panel" id="menu-search-panel" hidden>
+    <div class="search-panel-inner">
+      <input type="text" id="menu-search-input" class="search-input"
+            placeholder="Search the drinks…" autocomplete="off" aria-label="Search drinks menu">
+      <button class="search-close" id="search-close" aria-label="Close search">&times;</button>
+    </div>
+    <p class="search-empty" id="search-empty" hidden>No drinks match your search.</p>
+  </div>
+
+  <section id="menu-hero">
+
+    <div class="image-container">
+      <img src="food.avif" alt="Drinks" fetchpriority="high" decoding="async">
+      <div class="overlay"></div>
+      
+      <div class="menu-hero-content">
+        <h4>HOME / MENU / <span>DRINKS</span></h4>
+        <p><span></span>COFFEE • COCKTAILS</p>
+        <h2>Drinks</h2>
+        <p class="subtitle">Coffee, cocktails and refreshments — something for every moment of the day.</p>
+      </div>
+
+    </div>
+
+  </section>
+
+  <section id="menu">
+
+    <div class="menu-bg-clip">
+      <div class="menu-bg-circles" aria-hidden="true"></div>
+    </div>
+
+    <div class="menu-nav-wrap">
+
+      <div class="menu-nav">
+        <a href="#menu-popular">Popular</a>
+        <a href="#menu-coffee">Coffee</a>
+        <a href="#menu-cocktails">Cocktails</a>
+        <a href="index.html"><button>← MENU</button></a>
+      </div>
+
+      <button class="menu-nav-arrow menu-nav-arrow-left"></button>
+      <button class="menu-nav-arrow menu-nav-arrow-right"></button>
+
+    </div>
+
+    <!-- Each section below is populated by renderMenus() in script.js, using
+         the data declared here and the matching list in menu-data.js. -->
+
+    <section id="menu-popular" class="menu-popular"
+      data-title="Popular" data-tagline="reach for these first"
+      data-menu="drinks.popular" data-currency-nested="true"></section>
+
+    <div class="drink-gallery" data-gallery="drinks.gallery"></div>
+
+    <section id="menu-coffee" class="menu-popular"
+      data-title="Coffee" data-tagline=""
+      data-menu="drinks.coffee"></section>
+
+    <section id="menu-cocktails" class="menu-popular"
+      data-title="Cocktails" data-tagline="poured with intention"
+      data-menu="drinks.cocktails"></section>
+
+  </section>
+
+  <footer>
+    <span></span>
+
+    <div class="footer-title">
+      <h2>VOI</h2>
+      <p>caffe & cucina moderna</p>
+    </div>
+
+    <div class="footer-content">
+      <!-- 1. Hours Section -->
+      <div class="footer-hours">
+        <h4>HOURS</h4>
+
+        <div class="hours-line">
+          <p>Mon - Thu</p>
+          <b>09:00 - 00:00</b>
+        </div>
+
+        <div class="hours-line">
+          <p>Fri - Sat</p>
+          <b>09:00 - 01:00</b>
+        </div>
+
+        <div class="hours-line">
+          <p>Sunday</p>
+          <b id="closed">Closed</b>
+        </div>
+      </div>
+
+      <!-- 2. Contact Section -->
+      <div class="footer-contact">
+        <h4>CONTACT & FOLLOW</h4>
+
+        <p class="contact-text">Васко Карангелески Бр. !, <br>Прилеп 7500</p>
+
+        <div class="contact-links">
+          <a href="tel:01732740974">+389 73 555 300</a>
+        </div>
+
+        <div class="contact-links">
+          <a href="https://www.kart.mk/vendor-detail/OFa7xqpWRLCCbbLE3sGp">Order Online ↗</a>
+          <a href="https://maps.app.goo.gl/3oyvF2NyYNwSrvcW6" target="_blank" rel="noopener">Find us on the map ↗</a>
+        </div>
+
+        <div class="social-links">
+          <a href="https://www.instagram.com/voi_caffe_cucina_moderna/" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          </a>
+          <a href="https://www.facebook.com/profile.php?id=61592655358587" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-credit">
+      <p>© 2026 VOI - coffe & cucina moderna. All rights reserved.</p>
+      <p>Website by <b>Teodor Dimeski</b></p>
+    </div>
+  </footer>
+
+  <script src="menu-data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
