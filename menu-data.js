@@ -57,10 +57,10 @@ const MENU_ITEMS = {
     // Photo gallery on the drinks page. Note: Cappuccino is priced at 160ден here,
     // vs 120ден in the list above — kept exactly as it was in the original markup.
     gallery: [
-      { name: "Cappuccino", price: 160, image: "/cappuccino.avif" },
-      { name: "Iced Latte", price: 140, image: "/icedLatte.avif" },
-      { name: "Mojito", price: 280, image: "/mojito.avif" },
-      { name: "Hot Chocolate", price: 160, image: "/chocolate.avif" },
+      { name: "Cappuccino", price: 160, image: "cappuccino.avif" },
+      { name: "Iced Latte", price: 140, image: "icedLatte.avif" },
+      { name: "Mojito", price: 280, image: "mojito.avif" },
+      { name: "Hot Chocolate", price: 160, image: "chocolate.avif" },
     ],
   },
 };
