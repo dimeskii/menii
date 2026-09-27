@@ -1,0 +1,535 @@
+/* ==========================================================================
+   VOI menu editor
+   Same palette and type family as the public site (dark charcoal + gold,
+   Instrument Serif for headings, mono for prices) so this reads as the back
+   room of the same building — not a different piece of software. Laid out
+   as a single-column ledger: each menu category is a chapter, each dish or
+   drink a row that expands in place to edit. Nothing here is a card grid;
+   the content is a list, so it looks and behaves like one.
+   ========================================================================== */
+
+:root {
+  --color-bg: #0e0c0a;
+  --color-surface: #16130f;
+  --color-surface-raised: #1d1811;
+  --color-text: #f5f1ea;
+  --color-text-muted: #b8b0a2;
+  --color-text-faint: #8a8071;
+
+  --color-gold: #d89d07;
+  --color-gold-soft: #bb8a11;
+  --color-gold-dim: #6b520f;
+
+  --color-border: rgba(216, 157, 7, 0.22);
+  --color-border-strong: rgba(216, 157, 7, 0.5);
+  --color-shadow: rgba(0, 0, 0, 0.45);
+
+  --color-danger: #c15a3f;
+  --color-danger-soft: rgba(193, 90, 63, 0.14);
+  --color-danger-border: rgba(193, 90, 63, 0.45);
+
+  --font-heading: 'Instrument Serif', serif;
+  --font-logo: 'Lobster', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'Roboto Mono', 'Courier New', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-pill: 20px;
+  --transition: 0.18s ease;
+  --gutter: clamp(16px, 5vw, 32px);
+  --container: 760px;
+}
+
+* { box-sizing: border-box; }
+
+/* Some sections below (like .auth-gate) set their own `display` value,
+   which — at equal CSS specificity — would otherwise beat the browser's
+   default "hidden means gone" rule and leave them visible even with the
+   hidden attribute set. This makes hidden always win, full stop. */
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+button, input, textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* ---- Buttons ------------------------------------------------------------ */
+
+.btn {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  transition: transform var(--transition), background var(--transition), border-color var(--transition);
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--color-gold);
+  color: #17130c;
+}
+.btn-primary:hover { background: var(--color-gold-soft); }
+.btn-primary:disabled { background: var(--color-gold-dim); color: var(--color-text-faint); cursor: wait; }
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+.btn-secondary:hover { border-color: var(--color-gold); }
+
+.btn-ghost {
+  color: var(--color-text-muted);
+  padding: 8px 14px;
+}
+.btn-ghost:hover { color: var(--color-text); }
+
+.btn-text {
+  padding: 6px 4px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+}
+.btn-text:hover { color: var(--color-text); }
+
+.btn-danger-text {
+  padding: 6px 4px;
+  font-size: 13.5px;
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+}
+.btn-danger-text:hover { color: #e08268; }
+
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+.btn-danger:hover { background: #d1684b; }
+
+.btn-block { width: 100%; }
+
+/* ==========================================================================
+   Sign-in gate
+   ========================================================================== */
+
+.auth-gate {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gutter);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(216, 157, 7, 0.08), transparent 55%),
+    var(--color-bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 40px 32px 32px;
+  text-align: center;
+  box-shadow: 0 24px 60px var(--color-shadow);
+}
+
+.auth-wordmark {
+  margin: 0;
+  font-family: var(--font-logo);
+  font-size: 32px;
+  color: var(--color-gold);
+  letter-spacing: 0.5px;
+}
+
+.auth-kicker {
+  margin: 2px 0 28px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.field {
+  display: block;
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.field span {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-size: 16px; /* stops iOS zooming the page on focus */
+  transition: border-color var(--transition);
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--color-gold);
+  outline: none;
+}
+
+.auth-card .btn-primary { margin-top: 6px; }
+
+.auth-error {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  color: var(--color-danger);
+}
+
+/* ==========================================================================
+   Editor shell
+   ========================================================================== */
+
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px var(--gutter);
+  background: rgba(14, 12, 10, 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-wordmark {
+  margin: 0;
+  font-family: var(--font-logo);
+  font-size: 22px;
+  color: var(--color-gold);
+  white-space: nowrap;
+}
+.admin-wordmark span {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 8px;
+}
+
+.admin-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-email {
+  font-size: 13px;
+  color: var(--color-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 34vw;
+}
+
+.ledger-wrap {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 48px) var(--gutter) 80px;
+}
+
+.ledger-state {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 60px 20px;
+}
+
+.ledger-state .btn { margin-top: 14px; }
+
+.ledger {
+  animation: ledger-in 0.5s ease both;
+}
+
+@keyframes ledger-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ledger-footnote {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-faint);
+}
+
+/* ==========================================================================
+   Chapters (one per section+category, e.g. "Food — Pizza")
+   ========================================================================== */
+
+.chapter {
+  margin-bottom: 20px;
+}
+
+.chapter-head {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.chapter-head h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 1.6rem;
+  color: var(--color-text);
+}
+
+.chapter-parent {
+  font-size: 12.5px;
+  color: var(--color-text-faint);
+  text-transform: lowercase;
+}
+
+.chapter-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--color-text-faint);
+}
+
+.chapter-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-faint);
+  transition: transform var(--transition);
+  flex-shrink: 0;
+}
+
+.chapter.is-collapsed .chapter-chevron { transform: rotate(-90deg); }
+.chapter.is-collapsed .chapter-body { display: none; }
+
+.chapter-empty {
+  padding: 16px 2px;
+  color: var(--color-text-faint);
+  font-size: 13.5px;
+  font-style: italic;
+}
+
+/* ---- Item rows ----------------------------------------------------------- */
+
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item-row {
+  border-bottom: 1px solid rgba(216, 157, 7, 0.1);
+}
+
+.item-row-main {
+  display: flex;
+  align-items: center;
+}
+
+.item-order {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 4px;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+}
+.item-order:hover { color: var(--color-gold); }
+.item-order:disabled { opacity: 0.25; pointer-events: none; }
+.item-order svg { width: 11px; height: 11px; display: block; }
+
+.item-summary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 8px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.item-summary:hover,
+.item-summary:focus-visible { background: rgba(216, 157, 7, 0.06); }
+
+.item-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+.item-row.is-new .item-name { color: var(--color-text-faint); font-style: italic; }
+
+.item-price {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: var(--color-gold-soft);
+  white-space: nowrap;
+}
+.item-price .unit { font-size: 11px; margin-left: 1px; opacity: 0.8; }
+
+.item-edit-hint {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.item-summary:hover .item-edit-hint,
+.item-summary:focus-visible .item-edit-hint { opacity: 1; }
+
+/* ---- Inline editor (expands under a row) --------------------------------- */
+
+.item-editor {
+  padding: 4px 8px 20px 34px;
+  animation: editor-in 0.16s ease both;
+}
+
+@keyframes editor-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.item-editor .field { margin-bottom: 12px; }
+.item-editor .field-price input { max-width: 140px; }
+
+.item-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.item-editor-actions .btn-primary,
+.item-editor-actions .btn-secondary { padding: 9px 18px; font-size: 13.5px; }
+.item-editor-actions .spacer { flex: 1; }
+
+.confirm-delete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.confirm-delete strong { color: var(--color-text); font-weight: 500; }
+
+/* ---- Add item ------------------------------------------------------------ */
+
+.add-item-row {
+  padding: 10px 8px 10px 34px;
+}
+
+.add-item {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+}
+.add-item:hover { color: var(--color-gold); }
+
+/* ==========================================================================
+   Toast
+   ========================================================================== */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 0);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+  font-size: 13.5px;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 12px 30px var(--color-shadow);
+  z-index: 100;
+  max-width: min(90vw, 380px);
+  text-align: center;
+  animation: toast-in 0.22s ease both;
+}
+
+.toast.is-danger {
+  border-color: var(--color-danger-border);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ==========================================================================
+   Small screens: give the row's controls a bit more breathing room
+   ========================================================================== */
+
+@media (max-width: 420px) {
+  .item-editor { padding-left: 20px; }
+  .add-item-row { padding-left: 20px; }
+}
+
+/* ==========================================================================
+   Wider screens: a little more air, chapters can breathe
+   ========================================================================== */
+
+@media (min-width: 640px) {
+  .chapter-head h2 { font-size: 1.8rem; }
+  .item-summary { padding: 16px 10px; }
+}
+
+@media (pointer: coarse) {
+  .item-order { padding: 10px 8px; }
+  .btn { min-height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledger, .item-editor, .toast { animation: none; }
+  .btn:active { transform: none; }
+}

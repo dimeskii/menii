@@ -6,7 +6,13 @@
     <title>VOI — Caffè & Cucina Moderna</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>   
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Menu data lives in Supabase and the client library loads from this
+         CDN — opening both connections early means the actual data request
+         doesn't have to wait on DNS/TLS once script.js is ready to fire it. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wewycvksopfrpwxqqswf.supabase.co" crossorigin>
 
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Jim+Nightshade&family=Lobster&family=Roboto+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
@@ -28,7 +34,19 @@
         <div class="search-glass"></div>
         <div class="search-handle"></div>
       </div>
+
+      <button class="hamburger" id="nav-toggle" type="button" aria-label="Open navigation"
+              aria-expanded="false" aria-controls="site-nav">
+        <span></span><span></span><span></span>
+      </button>
     </div>
+
+    <nav class="navigation" id="site-nav" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/menu">Menu</a>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+    </nav>
   </header>
 
   <div class="search-panel" id="menu-search-panel" hidden>
@@ -160,7 +178,11 @@
     </div>
   </footer>
 
+  <!-- Live menu data: bundled fallback, then the Supabase client + your
+       project keys, then the page logic that fetches from the table. -->
   <script src="menu-data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

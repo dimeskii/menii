@@ -1,17 +1,19 @@
-// Render menu sections + the drinks photo gallery from MENU_ITEMS (see menu-data.js).
-// A <section class="menu-popular" data-title="…" data-menu="food.popular" …> is all
-// a page needs — no more hand-written .menu-item markup per dish/drink.
-function renderMenus(){
+// Render menu sections + the drinks photo gallery from a MENU_ITEMS-shaped
+// object: { food: { popular: [...], pizza: [...] }, drinks: { ... } }.
+// That object now comes from Supabase (see loadMenuItems below) instead of
+// a hardcoded file — a <section class="menu-popular" data-title="…"
+// data-menu="food.popular" …> is all a page needs either way.
+function renderMenus(menuItems){
   const money = (price, nested) => nested ? `${price}<span>ден</span>` : `${price}ден`;
 
   const getMenuList = (path) =>
-    path.split('.').reduce((data, key) => data && data[key], MENU_ITEMS);
+    path.split('.').reduce((data, key) => data && data[key], menuItems);
 
-  const renderMenuItem = ({ name, price, desc }, nested) => `
+  const renderMenuItem = ({ name, price, description }, nested) => `
     <div class="menu-item">
       <h3>${name}</h3>
       <span class="item-price">${money(price, nested)}</span>
-      <span class="item-desc">${desc}</span>
+      ${description ? `<span class="item-desc">${description}</span>` : ''}
     </div>`;
 
   document.querySelectorAll('.menu-popular[data-title]').forEach(section => {
@@ -64,7 +66,90 @@ function renderMenus(){
   }
 }
 
-renderMenus();
+// Shown the instant the page loads, before the Supabase fetch resolves, so
+// visitors see something other than blank sections.
+function showLoadingState(){
+  document.querySelectorAll('.menu-popular[data-title]').forEach(section => {
+    section.innerHTML = `
+      <div class="menu-head">
+        <h2>${section.dataset.title}</h2>
+        <span></span>
+      </div>
+      <p class="menu-loading">Loading menu…</p>`;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Menu data: cache/fallback-first, so weak mobile connections never block
+// the first paint of the menu on a live database round-trip.
+//
+// Strategy on every page load:
+//   1. Render instantly from whatever we have for free — the last menu we
+//      successfully fetched (cached in localStorage), or the bundled
+//      FALLBACK_MENU_ITEMS on a first-ever visit. Zero network cost.
+//   2. Kick off the real Supabase fetch in the background. If it comes back
+//      with something different, quietly swap it in. If it fails (offline,
+//      Supabase down, weak signal timing out), the visitor never even
+//      notices — they're already looking at a perfectly good menu.
+// ---------------------------------------------------------------------------
+
+const MENU_CACHE_KEY = 'voi_menu_cache_v1';
+
+// Reads the last menu we successfully fetched. Returns null if there's
+// nothing cached yet, or if storage isn't available (private browsing,
+// storage disabled, quota issues) — callers just fall back gracefully.
+function getCachedMenu(){
+  try {
+    const raw = localStorage.getItem(MENU_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.data) ? parsed.data : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function setCachedMenu(data){
+  try {
+    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({ data, cachedAt: Date.now() }));
+  } catch (err) {
+    // Storage full/unavailable — not worth failing the page over, just skip it.
+  }
+}
+
+// Pure Supabase fetch — throws on any failure instead of silently falling
+// back, so callers can decide for themselves what "failure" should mean.
+// Reshapes rows into the { section: { category: [items] } } tree
+// renderMenus() expects — the same shape the old menu-data.js exported by hand.
+async function fetchMenuFromSupabase(){
+  if (typeof supabase === 'undefined') {
+    throw new Error('Supabase client library did not load');
+  }
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-PROJECT')) {
+    throw new Error('supabase-config.js has not been filled in yet');
+  }
+
+  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data, error } = await client
+    .from('menu_items')
+    .select('*')
+    .order('sort_order', { ascending: true });
+
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('menu_items table is empty');
+
+  const menuItems = {};
+  data.forEach(row => {
+    (menuItems[row.section] ??= {});
+    (menuItems[row.section][row.category] ??= []).push({
+      name: row.name,
+      price: row.price,
+      description: row.description,
+      image: row.image,
+    });
+  });
+  return menuItems;
+}
 
 // Menu nav arrow scrolling
 function menuArrow(){
@@ -103,8 +188,6 @@ function menuArrow(){
     updateArrowState(); // run once on load
   }
 }
-
-menuArrow();
 
 // Randomized background circles for the menu section
 function randomizedBg(){
@@ -156,8 +239,6 @@ function randomizedBg(){
     updateParallax(); // set initial position
   }
 }
-
-randomizedBg();
 
 // Menu search
 function search(){
@@ -302,8 +383,6 @@ function search(){
   }
 }
 
-search();
-
 function detectSection(){
   const sections = Array.from(document.querySelectorAll('#menu > section[id]'));
   const links = document.querySelectorAll('.menu-nav a[href^="#"]');
@@ -325,9 +404,6 @@ function detectSection(){
     });
   });
 }
-
-detectSection();
-
 
 // Header background on scroll, and hide the sticky category pill while it would
 // sit on top of the drinks photo gallery. Measured from the real layout, so it
@@ -360,8 +436,6 @@ function headerAndPill(){
   update();
 }
 
-headerAndPill();
-
 // Hamburger menu (phones + tablets; the CSS shows the links inline from 900px up)
 function mobileNav(){
   const toggle = document.getElementById('nav-toggle');
@@ -393,4 +467,49 @@ function mobileNav(){
   });
 }
 
-mobileNav();
+// Entry point. Layout-measuring setup (menuArrow, headerAndPill) runs after
+// renderMenus() has filled in the real content, so it measures final sizes
+// instead of the empty/loading placeholders.
+async function init(){
+  // Render instantly from cache or the bundled fallback — no network wait.
+  const initialMenu = getCachedMenu()
+    || (typeof FALLBACK_MENU_ITEMS !== 'undefined' ? FALLBACK_MENU_ITEMS : null);
+
+  if (initialMenu) {
+    renderMenus(initialMenu);
+  } else {
+    // Only reachable if this is a first-ever visit AND menu-data.js failed
+    // to load — genuinely nothing to show yet.
+    showLoadingState();
+  }
+
+  menuArrow();
+  randomizedBg();
+  search();
+  detectSection();
+  headerAndPill();
+  mobileNav();
+
+  // Now fetch the live menu in the background. A weak or slow connection
+  // just means this takes longer — it never blocks what the visitor already
+  // sees above.
+  try {
+    const liveMenu = await fetchMenuFromSupabase();
+    setCachedMenu(liveMenu);
+
+    // Don't yank the menu out from under someone mid-search.
+    const searchInput = document.getElementById('menu-search-input');
+    const searchIsActive = searchInput && searchInput.value.trim() !== '';
+
+    if (!searchIsActive && JSON.stringify(liveMenu) !== JSON.stringify(initialMenu)) {
+      renderMenus(liveMenu);
+    }
+  } catch (err) {
+    console.warn('Live menu fetch failed, staying on cached/fallback menu:', err.message);
+    if (!initialMenu) {
+      renderMenus(typeof FALLBACK_MENU_ITEMS !== 'undefined' ? FALLBACK_MENU_ITEMS : {});
+    }
+  }
+}
+
+init();
