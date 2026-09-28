@@ -1,19 +1,17 @@
-// Render the text menu sections from a MENU_ITEMS-shaped
-// object: { food: { popular: [...], pizza: [...] }, drinks: { ... } }.
-// That object now comes from Supabase (see loadMenuItems below) instead of
-// a hardcoded file — a <section class="menu-popular" data-title="…"
-// data-menu="food.popular" …> is all a page needs either way.
-function renderMenus(menuItems){
+// Render menu sections + the drinks photo gallery from MENU_ITEMS (see menu-data.js).
+// A <section class="menu-popular" data-title="…" data-menu="food.popular" …> is all
+// a page needs — no more hand-written .menu-item markup per dish/drink.
+function renderMenus(){
   const money = (price, nested) => nested ? `${price}<span>ден</span>` : `${price}ден`;
 
   const getMenuList = (path) =>
-    path.split('.').reduce((data, key) => data && data[key], menuItems);
+    path.split('.').reduce((data, key) => data && data[key], MENU_ITEMS);
 
-  const renderMenuItem = ({ name, price, description }, nested) => `
+  const renderMenuItem = ({ name, price, desc }, nested) => `
     <div class="menu-item">
       <h3>${name}</h3>
       <span class="item-price">${money(price, nested)}</span>
-      ${description ? `<span class="item-desc">${description}</span>` : ''}
+      <span class="item-desc">${desc}</span>
     </div>`;
 
   document.querySelectorAll('.menu-popular[data-title]').forEach(section => {
@@ -24,8 +22,6 @@ function renderMenus(menuItems){
       ? `<div class="popular-img"><img src="${img}" alt="${imgAlt || ''}" loading="lazy" decoding="async"><p>${caption || ''}</p></div>`
       : '';
 
-    // Each section can set its own line under the title via data-tagline.
-    // Omit the attribute to keep the default text below, or set data-tagline="" for none.
     const taglineText = tagline ?? 'to begin the tale';
 
     section.innerHTML = `
@@ -38,172 +34,35 @@ function renderMenus(menuItems){
       <span class="start-the-menu"></span>
       ${items.map(item => renderMenuItem(item, currencyNested === 'true')).join('')}`;
   });
-}
 
-// The drinks photo gallery is plain markup in drinks.html (each .photo-drink
-// carries its own image path in data-bg) — no database involved. These photos
-// are heavy, so each one is only fetched once it's about to scroll into view.
-function initGalleryImages(){
-  const photoEls = document.querySelectorAll('.drink-gallery .photo-drink[data-bg]');
-  if (!photoEls.length) return;
+  const gallery = document.querySelector('.drink-gallery[data-gallery]');
+  if (gallery) {
+    const items = getMenuList(gallery.dataset.gallery) || [];
+    gallery.innerHTML = items.map(({ name, price, image }) => `
+      <div class="photo-drink" data-bg="${image}">
+        <h3>${name}</h3>
+        <span class="photo-item-price">${price}<span>ден</span></span>
+      </div>`).join('');
 
-  const load = (el) => el.style.setProperty('--photo-bg', `url('${el.dataset.bg}')`);
-
-  if ('IntersectionObserver' in window) {
-    const lazyBg = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        load(entry.target);
-        observer.unobserve(entry.target);
-      });
-    }, { rootMargin: '200px 0px' });
-    photoEls.forEach(el => lazyBg.observe(el));
-  } else {
-    photoEls.forEach(load);
+    // These background photos are heavy — only fetch each one once it's about
+    // to scroll into view, instead of downloading all 4 upfront.
+    const photoEls = gallery.querySelectorAll('.photo-drink');
+    if ('IntersectionObserver' in window) {
+      const lazyBg = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          entry.target.style.setProperty('--photo-bg', `url('${entry.target.dataset.bg}')`);
+          observer.unobserve(entry.target);
+        });
+      }, { rootMargin: '200px 0px' });
+      photoEls.forEach(el => lazyBg.observe(el));
+    } else {
+      photoEls.forEach(el => el.style.setProperty('--photo-bg', `url('${el.dataset.bg}')`));
+    }
   }
 }
 
-// Shown the instant the page loads, before the Supabase fetch resolves, so
-// visitors see something other than blank sections.
-function showLoadingState(){
-  document.querySelectorAll('.menu-popular[data-title]').forEach(section => {
-    section.innerHTML = `
-      <div class="menu-head">
-        <h2>${section.dataset.title}</h2>
-        <span></span>
-      </div>
-      <p class="menu-loading">Loading menu…</p>`;
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Menu data: cache/fallback-first, so weak mobile connections never block
-// the first paint of the menu on a live database round-trip.
-//
-// Strategy on every page load:
-//   1. Render instantly from whatever we have for free — the last menu we
-//      successfully fetched (cached in localStorage), or the bundled
-//      FALLBACK_MENU_ITEMS on a first-ever visit. Zero network cost.
-//   2. Kick off the real menu fetch in the background, trying two live
-//      sources in order (see fetchLiveMenu). If it comes back with
-//      something different, quietly swap it in. If both fail (offline,
-//      Supabase down, weak signal timing out), the visitor never even
-//      notices — they're already looking at a perfectly good menu.
-// ---------------------------------------------------------------------------
-
-const MENU_CACHE_KEY = 'voi_menu_cache_v1';
-
-// Bump this if the cached shape ever changes (e.g. a new field renderMenus()
-// starts relying on). A mismatched version is treated as no cache at all,
-// rather than handing renderMenus() something it doesn't understand.
-const MENU_CACHE_SCHEMA = 2; // 2: images are no longer part of the menu data
-
-// How long a single request is allowed to hang before we give up on it.
-// Doesn't affect first paint (that already happens from cache/fallback
-// before any of this starts) — it just stops a stalled request on a bad
-// connection from sitting open indefinitely.
-const FETCH_TIMEOUT_MS = 8000;
-
-// A small JSON file kept in sync with menu_items automatically — a Database
-// Webhook fires the "sync-menu-snapshot" Edge Function on every insert/
-// update/delete, which rewrites this file within a few seconds. Unlike
-// menu-data.js, nothing here ever needs a manual redeploy: it's live data,
-// not a bundled file, so a brand-new visitor's very first page load can get
-// an accurate menu without waiting on a full database round-trip. See the
-// Edge Function setup notes for how this is wired up.
-const MENU_SNAPSHOT_URL = () => `${SUPABASE_URL}/storage/v1/object/public/menu-cache/menu.json`;
-
-// Reads the last menu we successfully fetched. Returns null if there's
-// nothing cached yet, it's from an old schema, or storage isn't available
-// (private browsing, storage disabled, quota issues) — callers just fall
-// back gracefully.
-function getCachedMenu(){
-  try {
-    const raw = localStorage.getItem(MENU_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || parsed.schema !== MENU_CACHE_SCHEMA || !parsed.data) return null;
-    return parsed.data;
-  } catch (err) {
-    return null;
-  }
-}
-
-function setCachedMenu(data){
-  try {
-    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({ schema: MENU_CACHE_SCHEMA, data, cachedAt: Date.now() }));
-  } catch (err) {
-    // Storage full/unavailable — not worth failing the page over, just skip it.
-  }
-}
-
-// Fast path: a single small JSON file over plain fetch — no client library,
-// no auth headers, no database round-trip. Throws on anything that isn't a
-// clean 200 with real data, so the caller falls through to the slower but
-// always-authoritative direct query below.
-async function fetchMenuFromSnapshot(){
-  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-PROJECT')) {
-    throw new Error('supabase-config.js has not been filled in yet');
-  }
-  const res = await fetch(MENU_SNAPSHOT_URL(), {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`Snapshot request failed: ${res.status}`);
-  const menuItems = await res.json();
-  if (!menuItems || Object.keys(menuItems).length === 0) throw new Error('Snapshot was empty');
-  return menuItems;
-}
-
-// Tries the fast snapshot first, falls through to the direct table query if
-// that fails for any reason (snapshot not set up yet, briefly out of sync,
-// storage hiccup, etc.) — either way the caller just gets a menu or a
-// clear failure, never has to know which source actually answered.
-async function fetchLiveMenu(){
-  try {
-    return await fetchMenuFromSnapshot();
-  } catch (err) {
-    console.warn('Menu snapshot unavailable, trying the direct query:', err.message);
-    return await fetchMenuFromSupabase();
-  }
-}
-
-// Pure Supabase fetch — throws on any failure instead of silently falling
-// back, so callers can decide for themselves what "failure" should mean.
-// Reshapes rows into the { section: { category: [items] } } tree
-// renderMenus() expects — the same shape the old menu-data.js exported by hand.
-async function fetchMenuFromSupabase(){
-  if (typeof supabase === 'undefined') {
-    throw new Error('Supabase client library did not load');
-  }
-  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-PROJECT')) {
-    throw new Error('supabase-config.js has not been filled in yet');
-  }
-
-  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { data, error } = await client
-    .from('menu_items')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    // If AbortSignal.timeout isn't supported by an ancient browser, this
-    // throws synchronously and init()'s try/catch falls back the same way
-    // a network failure would — never a reason to skip the timeout.
-    .abortSignal(AbortSignal.timeout(FETCH_TIMEOUT_MS));
-
-  if (error) throw error;
-  if (!data || data.length === 0) throw new Error('menu_items table is empty');
-
-  const menuItems = {};
-  data.forEach(row => {
-    (menuItems[row.section] ??= {});
-    (menuItems[row.section][row.category] ??= []).push({
-      name: row.name,
-      price: row.price,
-      description: row.description,
-    });
-  });
-  return menuItems;
-}
+renderMenus();
 
 // Menu nav arrow scrolling
 function menuArrow(){
@@ -226,10 +85,6 @@ function menuArrow(){
     const updateArrowState = () => {
       const maxScroll = menuNav.scrollWidth - menuNav.clientWidth;
 
-      // Everything fits (tablet/desktop): no arrows needed, centre the links.
-      const wrap = menuNav.closest('.menu-nav-wrap');
-      if (wrap) wrap.classList.toggle('is-static', maxScroll <= 1);
-
       arrowLeft.style.opacity = menuNav.scrollLeft <= 0 ? '0.3' : '1';
       arrowLeft.style.pointerEvents = menuNav.scrollLeft <= 0 ? 'none' : 'auto';
 
@@ -243,13 +98,15 @@ function menuArrow(){
   }
 }
 
+menuArrow();
+
 // Randomized background circles for the menu section
 function randomizedBg(){
   const circleContainer = document.querySelector('.menu-bg-circles');
   const menuSection = document.querySelector('#menu');
 
   if (circleContainer && menuSection) {
-    const CIRCLE_COUNT = Math.min(22, Math.max(10, Math.round(window.innerWidth / 70)));
+    const CIRCLE_COUNT = 14;
     const MIN_SIZE = 60;
     const MAX_SIZE = 320;
 
@@ -281,18 +138,18 @@ function randomizedBg(){
       ticking = false;
     }
 
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      window.addEventListener('scroll', () => {
-        if (!ticking) {
-          requestAnimationFrame(updateParallax);
-          ticking = true;
-        }
-      }, { passive: true });
-    }
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(updateParallax);
+        ticking = true;
+      }
+    });
 
     updateParallax(); // set initial position
   }
 }
+
+randomizedBg();
 
 // Menu search
 function search(){
@@ -329,79 +186,21 @@ function search(){
 
     function filterMenuItems(query) {
       const normalized = query.trim().toLowerCase();
-      let totalVisible = 0;
+      const items = document.querySelectorAll('.menu-item');
+      let visibleCount = 0;
 
-      document.querySelectorAll('.menu-popular[data-title]').forEach(section => {
-        let sectionVisible = 0;
+      items.forEach(item => {
+        const name = item.querySelector('h3')?.textContent.toLowerCase() || '';
+        const desc = item.querySelector('.item-desc')?.textContent.toLowerCase() || '';
+        const matches = normalized === '' || name.includes(normalized) || desc.includes(normalized);
 
-        // Filter individual menu items by their name
-        section.querySelectorAll('.menu-item').forEach(item => {
-          const name =
-            item.querySelector('h3')?.textContent.trim().toLowerCase() || '';
-
-          const matches =
-            normalized === '' || name.includes(normalized);
-
-          item.classList.toggle('is-hidden', !matches);
-
-          if (matches) {
-            sectionVisible++;
-          }
-        });
-
-        // Section-level search keyword
-        const searchText =
-          section.dataset.search?.trim().toLowerCase() || '';
-
-        const dataSearchMatches =
-          normalized === '' || searchText.includes(normalized);
-
-        const image = section.querySelector('img');
-
-        // Not every section has a photo (the drinks page's don't).
-        if (image) {
-          image.style.display = dataSearchMatches ? "block" : "none";
-        }
-          
-        const sectionMatches =
-          normalized === '' ||
-          dataSearchMatches ||
-          sectionVisible > 0;
-
-        section.classList.toggle('is-hidden', !sectionMatches);
-
-        // Optional: if the section itself matched but no item matched,
-        // you may want all its items visible.
-        if (dataSearchMatches && normalized !== '') {
-          section.querySelectorAll('.menu-item').forEach(item => {
-            item.classList.remove('is-hidden');
-          });
-
-          sectionVisible = section.querySelectorAll('.menu-item').length;
-        }
-
-        totalVisible += sectionVisible;
+        item.classList.toggle('is-hidden', !matches);
+        if (matches) visibleCount++;
       });
 
-      // Gallery — same idea, name-only, hide the whole gallery if none match.
-      const gallery = document.querySelector('.drink-gallery');
-      if (gallery) {
-        let galleryVisible = 0;
+      searchEmpty.hidden = normalized === '' || visibleCount > 0;
 
-        gallery.querySelectorAll('.photo-drink').forEach(photo => {
-          const name = photo.querySelector('h3')?.textContent.toLowerCase() || '';
-          const matches = normalized === '' || name.includes(normalized);
-
-          photo.classList.toggle('is-hidden', !matches);
-          if (matches) galleryVisible++;
-        });
-
-        gallery.classList.toggle('is-hidden', normalized !== '' && galleryVisible === 0);
-        totalVisible += galleryVisible;
-      }
-
-      searchEmpty.hidden = normalized === '' || totalVisible > 0;
-
+      // Scroll to results on the first keystroke, not every one
       if (normalized !== '' && !hasScrolledToResults) {
         menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         hasScrolledToResults = true;
@@ -435,6 +234,8 @@ function search(){
   }
 }
 
+search();
+
 function detectSection(){
   const sections = Array.from(document.querySelectorAll('#menu > section[id]'));
   const links = document.querySelectorAll('.menu-nav a[href^="#"]');
@@ -457,9 +258,6 @@ function detectSection(){
   });
 }
 
-// Header background on scroll, and hide the sticky category pill while it would
-// sit on top of the drinks photo gallery. Measured from the real layout, so it
-// keeps working at every screen size (the old version used fixed scroll offsets).
 function headerAndPill(){
   const header = document.querySelector('header');
   const pill = document.querySelector('.menu-nav-wrap');
@@ -488,81 +286,6 @@ function headerAndPill(){
   update();
 }
 
-// Hamburger menu (phones + tablets; the CSS shows the links inline from 900px up)
-function mobileNav(){
-  const toggle = document.getElementById('nav-toggle');
-  const nav = document.getElementById('site-nav');
-  if (!toggle || !nav) return;
+headerAndPill();
+detectSection();
 
-  const setOpen = (open) => {
-    nav.classList.toggle('is-open', open);
-    toggle.setAttribute('aria-expanded', String(open));
-    toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
-  };
-
-  toggle.addEventListener('click', () => setOpen(!nav.classList.contains('is-open')));
-  nav.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
-
-  document.addEventListener('click', (e) => {
-    if (!nav.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && nav.classList.contains('is-open')) {
-      setOpen(false);
-      toggle.focus();
-    }
-  });
-
-  window.matchMedia('(min-width: 900px)').addEventListener('change', (e) => {
-    if (e.matches) setOpen(false);
-  });
-}
-
-// Entry point. Layout-measuring setup (menuArrow, headerAndPill) runs after
-// renderMenus() has filled in the real content, so it measures final sizes
-// instead of the empty/loading placeholders.
-async function init(){
-  // Render instantly from cache or the bundled fallback — no network wait.
-  const initialMenu = getCachedMenu()
-    || (typeof FALLBACK_MENU_ITEMS !== 'undefined' ? FALLBACK_MENU_ITEMS : null);
-
-  if (initialMenu) {
-    renderMenus(initialMenu);
-  } else {
-    // Only reachable if this is a first-ever visit AND menu-data.js failed
-    // to load — genuinely nothing to show yet.
-    showLoadingState();
-  }
-
-  initGalleryImages();
-  menuArrow();
-  randomizedBg();
-  search();
-  detectSection();
-  headerAndPill();
-  mobileNav();
-
-  // Now fetch the live menu in the background. A weak or slow connection
-  // just means this takes longer — it never blocks what the visitor already
-  // sees above.
-  try {
-    const liveMenu = await fetchLiveMenu();
-    setCachedMenu(liveMenu);
-
-    // Don't yank the menu out from under someone mid-search.
-    const searchInput = document.getElementById('menu-search-input');
-    const searchIsActive = searchInput && searchInput.value.trim() !== '';
-
-    if (!searchIsActive && JSON.stringify(liveMenu) !== JSON.stringify(initialMenu)) {
-      renderMenus(liveMenu);
-    }
-  } catch (err) {
-    console.warn('Live menu fetch failed, staying on cached/fallback menu:', err.message);
-    if (!initialMenu) {
-      renderMenus(typeof FALLBACK_MENU_ITEMS !== 'undefined' ? FALLBACK_MENU_ITEMS : {});
-    }
-  }
-}
-
-init();
