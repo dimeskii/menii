@@ -20,13 +20,8 @@ const CHAPTERS = [
   { section: 'drinks', category: 'cocktails',  label: 'Cocktails',  parent: 'Drinks' },
 ];
 
-// The photo gallery isn't managed from this editor — it's photo-driven, not
-// text-driven, and this tool has no way to upload or change images. Its rows
-// stay exactly as they are in Supabase and keep rendering fine on the live
-// site (script.js reads them directly); this just keeps them out of view
-// here so nobody edits a gallery item's name/price expecting it to do
-// something it can't.
-const HIDDEN_CATEGORIES = new Set(['drinks.gallery']);
+// (The drinks photo gallery is plain HTML in drinks.html — it isn't in the
+// database at all, so there's nothing for this editor to manage or hide.)
 
 const TABLE = 'menu_items';
 
@@ -43,13 +38,12 @@ const TABLE = 'menu_items';
 // and turns "fix it" into one click for the rare times it's worth doing
 // (e.g. before a big menu overhaul).
 //
-// Fixed order — mirrors CHAPTERS plus the photo gallery, which is the only
-// category not editable above. This is the same shape renderMenus() in
+// Fixed order — mirrors CHAPTERS. This is the same shape renderMenus() in
 // script.js expects and the same shape FALLBACK_MENU_ITEMS is written in;
 // it can't grow a new page/category on its own, on purpose.
 // ---------------------------------------------------------------------------
 
-const EXPORT_STRUCTURE = [...CHAPTERS.map((c) => [c.section, c.category]), ['drinks', 'gallery']];
+const EXPORT_STRUCTURE = CHAPTERS.map((c) => [c.section, c.category]);
 
 // 32-bit FNV-1a. Not cryptographic — just fast, dependency-free, and
 // deterministic, which is all a "did anything change?" check needs for a
@@ -65,7 +59,7 @@ function fingerprint(str) {
 
 // Reshapes flat Supabase rows into the { section: { category: [items] } }
 // tree, always in EXPORT_STRUCTURE's fixed order and always with the same
-// four fields (missing ones normalized to null) — so the live menu and the
+// three fields (missing ones normalized to null) — so the live menu and the
 // hand-written FALLBACK_MENU_ITEMS hash identically whenever their content
 // actually matches, regardless of key order or omitted-vs-null fields.
 function buildExportTree(rows) {
@@ -78,7 +72,6 @@ function buildExportTree(rows) {
         name: r.name,
         price: r.price,
         description: r.description ?? null,
-        image: r.image ?? null,
       }));
     (tree[section] ??= {})[category] = list;
   });
@@ -114,7 +107,6 @@ function downloadBackupFile(tree, hash) {
   const formatItems = (list) => list.map((it) => {
     const parts = [`name: ${jsLiteral(it.name)}`, `price: ${it.price}`];
     if (it.description !== null) parts.push(`description: ${jsLiteral(it.description)}`);
-    if (it.image !== null) parts.push(`image: ${jsLiteral(it.image)}`);
     return `      { ${parts.join(', ')} },`;
   }).join('\n');
 
@@ -345,7 +337,7 @@ function renderLedger() {
     items
       .filter((i) => {
         const key = chapterKey(i.section, i.category);
-        return !known.has(key) && !HIDDEN_CATEGORIES.has(key);
+        return !known.has(key);
       })
       .map((i) => chapterKey(i.section, i.category))
   )];

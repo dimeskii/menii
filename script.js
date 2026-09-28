@@ -1,4 +1,4 @@
-// Render menu sections + the drinks photo gallery from a MENU_ITEMS-shaped
+// Render the text menu sections from a MENU_ITEMS-shaped
 // object: { food: { popular: [...], pizza: [...] }, drinks: { ... } }.
 // That object now comes from Supabase (see loadMenuItems below) instead of
 // a hardcoded file — a <section class="menu-popular" data-title="…"
@@ -38,31 +38,28 @@ function renderMenus(menuItems){
       <span class="start-the-menu"></span>
       ${items.map(item => renderMenuItem(item, currencyNested === 'true')).join('')}`;
   });
+}
 
-  const gallery = document.querySelector('.drink-gallery[data-gallery]');
-  if (gallery) {
-    const items = getMenuList(gallery.dataset.gallery) || [];
-    gallery.innerHTML = items.map(({ name, price, image }) => `
-      <div class="photo-drink" data-bg="${image}">
-        <h3>${name}</h3>
-        <span class="photo-item-price">${price}<span>ден</span></span>
-      </div>`).join('');
+// The drinks photo gallery is plain markup in drinks.html (each .photo-drink
+// carries its own image path in data-bg) — no database involved. These photos
+// are heavy, so each one is only fetched once it's about to scroll into view.
+function initGalleryImages(){
+  const photoEls = document.querySelectorAll('.drink-gallery .photo-drink[data-bg]');
+  if (!photoEls.length) return;
 
-    // These background photos are heavy — only fetch each one once it's about
-    // to scroll into view, instead of downloading all 4 upfront.
-    const photoEls = gallery.querySelectorAll('.photo-drink');
-    if ('IntersectionObserver' in window) {
-      const lazyBg = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-          if (!entry.isIntersecting) return;
-          entry.target.style.setProperty('--photo-bg', `url('${entry.target.dataset.bg}')`);
-          observer.unobserve(entry.target);
-        });
-      }, { rootMargin: '200px 0px' });
-      photoEls.forEach(el => lazyBg.observe(el));
-    } else {
-      photoEls.forEach(el => el.style.setProperty('--photo-bg', `url('${el.dataset.bg}')`));
-    }
+  const load = (el) => el.style.setProperty('--photo-bg', `url('${el.dataset.bg}')`);
+
+  if ('IntersectionObserver' in window) {
+    const lazyBg = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        load(entry.target);
+        observer.unobserve(entry.target);
+      });
+    }, { rootMargin: '200px 0px' });
+    photoEls.forEach(el => lazyBg.observe(el));
+  } else {
+    photoEls.forEach(load);
   }
 }
 
@@ -99,7 +96,7 @@ const MENU_CACHE_KEY = 'voi_menu_cache_v1';
 // Bump this if the cached shape ever changes (e.g. a new field renderMenus()
 // starts relying on). A mismatched version is treated as no cache at all,
 // rather than handing renderMenus() something it doesn't understand.
-const MENU_CACHE_SCHEMA = 1;
+const MENU_CACHE_SCHEMA = 2; // 2: images are no longer part of the menu data
 
 // How long a single request is allowed to hang before we give up on it.
 // Doesn't affect first paint (that already happens from cache/fallback
@@ -203,7 +200,6 @@ async function fetchMenuFromSupabase(){
       name: row.name,
       price: row.price,
       description: row.description,
-      image: row.image,
     });
   });
   return menuItems;
@@ -362,11 +358,9 @@ function search(){
 
         const image = section.querySelector('img');
 
-        if (!dataSearchMatches) {
-          image.style.display = "none";
-        }
-        else if (dataSearchMatches) {
-          image.style.display = "block";
+        // Not every section has a photo (the drinks page's don't).
+        if (image) {
+          image.style.display = dataSearchMatches ? "block" : "none";
         }
           
         const sectionMatches =
@@ -541,6 +535,7 @@ async function init(){
     showLoadingState();
   }
 
+  initGalleryImages();
   menuArrow();
   randomizedBg();
   search();

@@ -22,17 +22,18 @@ const BUCKET = 'menu-cache';
 const OBJECT_PATH = 'menu.json';
 
 // The fixed set of pages/categories the site supports — mirrors CHAPTERS in
-// admin.js plus the photo gallery. Anything outside this list (e.g. a
+// admin.js. (The drinks photo gallery is plain HTML in drinks.html, not
+// data.) Anything outside this list (e.g. a
 // category added directly in the table, bypassing the admin page) is left
 // out of the snapshot on purpose, same as the old static fallback file.
 const CATEGORIES: [string, string][] = [
   ['food', 'popular'], ['food', 'pizza'], ['food', 'hamburgers'],
-  ['drinks', 'popular'], ['drinks', 'coffee'], ['drinks', 'cocktails'], ['drinks', 'gallery'],
+  ['drinks', 'popular'], ['drinks', 'coffee'], ['drinks', 'cocktails'],
 ];
 
 type Row = {
   section: string; category: string; name: string; price: number;
-  description: string | null; image: string | null;
+  description: string | null;
   sort_order: number; created_at: string;
 };
 
@@ -75,7 +76,6 @@ Deno.serve(async (req) => {
       .map((r) => {
         const item: Record<string, unknown> = { name: r.name, price: r.price };
         if (r.description) item.description = r.description;
-        if (r.image) item.image = r.image;
         return item;
       });
     (tree[section] ??= {})[category] = list;

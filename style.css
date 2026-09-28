@@ -693,9 +693,9 @@ header a img {
 }
 
 /* the actual photo, on its own layer so it can zoom without moving the text.
-   Its background-image comes from the --photo-bg custom property, set inline
-   per item by renderMenus() in script.js from menu-data.js — add a new drink
-   to the gallery there and it just works, no CSS edits needed. */
+   Its background-image comes from the --photo-bg custom property, which
+   initGalleryImages() in script.js sets from each item's data-bg attribute
+   in drinks.html — add a new photo there and it just works, no CSS edits. */
 .photo-drink::before {
   content: "";
   position: absolute;

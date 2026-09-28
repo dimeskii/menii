@@ -56,17 +56,6 @@ const FALLBACK_MENU_ITEMS = {
       { name: "Negroni", price: 310, description: "Gin, vermouth & Campari, stirred not shaken" },
       { name: "Piña Colada", price: 300, description: "Rum, coconut cream & pineapple juice" },
     ],
-    // Photo gallery on the drinks page. Note: Cappuccino is priced at 160ден here,
-    // vs 120ден in the list above — kept exactly as it was in the original markup.
-    // Image paths are root-relative ("/cappuccino.avif") to match how they're
-    // stored in Supabase (see seed.sql) — keep it that way, or the freshness
-    // check below will permanently think this file is out of date.
-    gallery: [
-      { name: "Cappuccino", price: 160, image: "cappuccino.avif" },
-      { name: "Iced Latte", price: 140, image: "icedLatte.avif" },
-      { name: "Mojito", price: 280, image: "mojito.avif" },
-      { name: "Hot Chocolate", price: 160, image: "chocolate.avif" },
-    ],
   },
 };
 
@@ -75,4 +64,4 @@ const FALLBACK_MENU_ITEMS = {
 // admin page. Only meaningful there; script.js never reads this.
 // Regenerate both together from the admin page's "Download updated backup
 // file" button whenever the menu changes — never hand-edit this value.
-const FALLBACK_MENU_HASH = "1a2b6dce";
+const FALLBACK_MENU_HASH = "8d16a570";

@@ -7,7 +7,6 @@ create table if not exists public.menu_items (
   name text not null,
   price integer not null,
   description text,
-  image text,
 
   sort_order integer not null default 0,
   created_at timestamptz not null default now()

@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>VOI — Drinks</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>VOI — Drinks</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <!-- Menu data lives in Supabase and the client library loads from this
-         CDN — opening both connections early means the actual data request
-         doesn't have to wait on DNS/TLS once script.js is ready to fire it. -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preconnect" href="https://wewycvksopfrpwxqqswf.supabase.co" crossorigin>
+  <!-- Menu data lives in Supabase and the client library loads from this
+       CDN — opening both connections early means the actual data request
+       doesn't have to wait on DNS/TLS once script.js is ready to fire it. -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://wewycvksopfrpwxqqswf.supabase.co" crossorigin>
 
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Jim+Nightshade&family=Lobster&family=Roboto+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Jim+Nightshade&family=Lobster&family=Roboto+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css">
 
-    <link rel="preload" as="image" href="food.avif" type="image/avif" fetchpriority="high">
+  <link rel="preload" as="image" href="food.avif" type="image/avif" fetchpriority="high">
+  <link rel="icon" type="image/jpg" href="logo.jpg">
 </head>
 <body>
 
@@ -102,7 +103,26 @@
       data-title="Popular" data-tagline="reach for these first"
       data-menu="drinks.popular" data-currency-nested="true"></section>
 
-    <div class="drink-gallery" data-gallery="drinks.gallery"></div>
+    <!-- Photo gallery: plain HTML, not stored in Supabase. To change a photo,
+         swap its data-bg path; to add one, copy a .photo-drink block. -->
+    <div class="drink-gallery">
+      <div class="photo-drink" data-bg="cappuccino.avif">
+        <h3>Cappuccino</h3>
+        <span class="photo-item-price">160<span>ден</span></span>
+      </div>
+      <div class="photo-drink" data-bg="icedLatte.avif">
+        <h3>Iced Latte</h3>
+        <span class="photo-item-price">140<span>ден</span></span>
+      </div>
+      <div class="photo-drink" data-bg="mojito.avif">
+        <h3>Mojito</h3>
+        <span class="photo-item-price">280<span>ден</span></span>
+      </div>
+      <div class="photo-drink" data-bg="chocolate.avif">
+        <h3>Hot Chocolate</h3>
+        <span class="photo-item-price">160<span>ден</span></span>
+      </div>
+    </div>
 
     <section id="menu-coffee" class="menu-popular"
       data-title="Coffee" data-tagline=""
