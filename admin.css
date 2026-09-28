@@ -286,6 +286,32 @@ button {
   to { opacity: 1; transform: none; }
 }
 
+.backup-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 32px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.backup-status p {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+  color: var(--color-text-muted);
+}
+
+.backup-status .btn { padding: 8px 16px; font-size: 13px; }
+
+.backup-status.is-stale {
+  border-color: var(--color-border-strong);
+}
+.backup-status.is-stale p { color: var(--color-text); }
+
 .ledger-footnote {
   margin-top: 48px;
   padding-top: 20px;

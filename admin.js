@@ -30,6 +30,133 @@ const HIDDEN_CATEGORIES = new Set(['drinks.gallery']);
 
 const TABLE = 'menu_items';
 
+// ---------------------------------------------------------------------------
+// Offline backup (menu-data.js) freshness check
+//
+// menu-data.js is now the *last* resort: script.js tries an auto-updating
+// Supabase snapshot first, then a direct database query, and only falls
+// back to this bundled file if both of those fail AND the visitor has no
+// local cache yet (see fetchLiveMenu() in script.js and the
+// sync-menu-snapshot Edge Function). That combo is rare, so this doesn't
+// need constant attention — but nothing keeps this one file in sync
+// automatically, so this still makes the drift visible instead of silent,
+// and turns "fix it" into one click for the rare times it's worth doing
+// (e.g. before a big menu overhaul).
+//
+// Fixed order — mirrors CHAPTERS plus the photo gallery, which is the only
+// category not editable above. This is the same shape renderMenus() in
+// script.js expects and the same shape FALLBACK_MENU_ITEMS is written in;
+// it can't grow a new page/category on its own, on purpose.
+// ---------------------------------------------------------------------------
+
+const EXPORT_STRUCTURE = [...CHAPTERS.map((c) => [c.section, c.category]), ['drinks', 'gallery']];
+
+// 32-bit FNV-1a. Not cryptographic — just fast, dependency-free, and
+// deterministic, which is all a "did anything change?" check needs for a
+// few dozen menu rows.
+function fingerprint(str) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+// Reshapes flat Supabase rows into the { section: { category: [items] } }
+// tree, always in EXPORT_STRUCTURE's fixed order and always with the same
+// four fields (missing ones normalized to null) — so the live menu and the
+// hand-written FALLBACK_MENU_ITEMS hash identically whenever their content
+// actually matches, regardless of key order or omitted-vs-null fields.
+function buildExportTree(rows) {
+  const tree = {};
+  EXPORT_STRUCTURE.forEach(([section, category]) => {
+    const list = rows
+      .filter((r) => r.section === section && r.category === category)
+      .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at))
+      .map((r) => ({
+        name: r.name,
+        price: r.price,
+        description: r.description ?? null,
+        image: r.image ?? null,
+      }));
+    (tree[section] ??= {})[category] = list;
+  });
+  return tree;
+}
+
+// Re-checks after every load and every successful edit, so the status
+// never lags behind what you're looking at in the ledger above it.
+function checkBackupFreshness() {
+  if (typeof FALLBACK_MENU_ITEMS === 'undefined') {
+    els.backupStatus.hidden = true; // menu-data.js didn't load — nothing to compare against
+    return;
+  }
+
+  const liveTree = buildExportTree(items);
+  const liveHash = fingerprint(JSON.stringify(liveTree));
+  const knownHash = typeof FALLBACK_MENU_HASH !== 'undefined' ? FALLBACK_MENU_HASH : null;
+  const isFresh = knownHash !== null && knownHash === liveHash;
+
+  els.backupStatus.hidden = false;
+  els.backupStatus.classList.toggle('is-stale', !isFresh);
+  els.backupDownload.hidden = isFresh;
+  els.backupStatusText.textContent = isFresh
+    ? 'Last-resort backup menu (menu-data.js) matches what\u2019s live.'
+    : 'Last-resort backup menu (menu-data.js) is out of date. Low-priority \u2014 the live snapshot handles new visitors \u2014 but worth refreshing next time you\u2019re updating the site.';
+
+  els.backupDownload.onclick = () => downloadBackupFile(liveTree, liveHash);
+}
+
+function downloadBackupFile(tree, hash) {
+  const jsLiteral = (value) => JSON.stringify(value);
+
+  const formatItems = (list) => list.map((it) => {
+    const parts = [`name: ${jsLiteral(it.name)}`, `price: ${it.price}`];
+    if (it.description !== null) parts.push(`description: ${jsLiteral(it.description)}`);
+    if (it.image !== null) parts.push(`image: ${jsLiteral(it.image)}`);
+    return `      { ${parts.join(', ')} },`;
+  }).join('\n');
+
+  const formatCategory = (category, list) => `    ${category}: [\n${formatItems(list)}\n    ],`;
+  const formatSection = (section, categories) =>
+    `  ${section}: {\n${Object.entries(categories).map(([c, l]) => formatCategory(c, l)).join('\n')}\n  },`;
+
+  const body = `// Offline safety net only — the live menu comes from Supabase (see
+// loadMenuItems() in script.js). This file is what the site falls back to
+// on a brand-new visit if the Supabase fetch hasn't resolved yet, so a slow
+// or broken connection never means a blank menu page. It is NOT read once
+// Supabase answers; edit prices/dishes from this admin page, not here.
+// Prices are in Macedonian denari (\u0434\u0435\u043d).
+//
+// Auto-generated from the live menu on ${new Date().toISOString().slice(0, 10)}
+// by this admin page's "Download updated backup file" button. Upload this
+// file to your host, replacing the old menu-data.js, to finish refreshing
+// the backup — this page can't write to your server directly.
+
+const FALLBACK_MENU_ITEMS = {
+${Object.entries(tree).map(([s, c]) => formatSection(s, c)).join('\n')}
+};
+
+// Lets this admin page detect when the file above has drifted from the
+// live menu. Regenerate this file (don't hand-edit this value) whenever
+// the banner above says it's out of date.
+const FALLBACK_MENU_HASH = ${jsLiteral(hash)};
+`;
+
+  const blob = new Blob([body], { type: 'text/javascript' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'menu-data.js';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  showToast('Downloaded menu-data.js \u2014 upload it to your host to finish refreshing the backup.');
+}
+
 const els = {
   authGate: document.getElementById('auth-gate'),
   loginForm: document.getElementById('login-form'),
@@ -46,6 +173,10 @@ const els = {
   ledgerError: document.getElementById('ledger-error'),
   retryLoad: document.getElementById('retry-load'),
   ledger: document.getElementById('ledger'),
+
+  backupStatus: document.getElementById('backup-status'),
+  backupStatusText: document.getElementById('backup-status-text'),
+  backupDownload: document.getElementById('backup-download'),
 
   toast: document.getElementById('toast'),
 };
@@ -190,6 +321,7 @@ async function loadAndRender() {
   items = data || [];
   renderLedger();
   els.ledger.hidden = false;
+  checkBackupFreshness();
 }
 
 function itemsFor(section, category) {
@@ -417,6 +549,7 @@ async function handleSaveExisting(e, form) {
   row.querySelector('.item-name').textContent = item.name;
   row.querySelector('.item-price').innerHTML = `${item.price}<span class="unit">\u0434\u0435\u043d</span>`;
   showToast(`Saved ${item.name}.`);
+  checkBackupFreshness();
 }
 
 function readFormValues(form) {
@@ -478,6 +611,7 @@ async function deleteItem(item, row) {
   items = items.filter((i) => i.id !== item.id);
   replaceChapter(item.section, item.category);
   showToast(`Removed ${item.name}.`);
+  checkBackupFreshness();
 }
 
 async function moveItem(item, direction) {
@@ -503,6 +637,8 @@ async function moveItem(item, direction) {
     console.error(e1 || e2);
     showToast('Couldn\u2019t reorder \u2014 try again.', { danger: true });
     await loadAndRender();
+  } else {
+    checkBackupFreshness();
   }
 }
 
@@ -549,6 +685,7 @@ async function handleSaveNew(e, form, section, category) {
   items.push(data);
   replaceChapter(section, category);
   showToast(`Added ${data.name}.`);
+  checkBackupFreshness();
 }
 
 // Re-renders one chapter in place and (re)binds only its own listeners —

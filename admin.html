@@ -7,6 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://wewycvksopfrpwxqqswf.supabase.co" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Lobster&family=Roboto+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
@@ -59,6 +60,11 @@
 
       <div class="ledger" id="ledger" hidden></div>
 
+      <div class="backup-status" id="backup-status" hidden>
+        <p id="backup-status-text"></p>
+        <button class="btn btn-secondary" id="backup-download" type="button" hidden>Download updated backup file</button>
+      </div>
+
       <p class="ledger-footnote">
         The photo gallery isn't managed here — it needs real photos, not just
         text, so it's edited directly in Supabase. Adding a brand-new category
@@ -71,9 +77,15 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <!-- Reuses the same Supabase project and keys index.html / drinks.html
-       already use — nothing new to configure here. -->
-  <script src="supabase.min.js"></script>
+  <!-- Reuses the same Supabase project, keys, and client library version
+       index.html / drinks.html already use (one canonical copy that gets
+       non-breaking updates automatically, instead of a hand-copied local
+       file that has to be remembered and re-downloaded to stay current —
+       the exact kind of drift this page's backup-freshness check below
+       exists to catch elsewhere). menu-data.js is loaded too, purely so
+       admin.js can compare the live menu against the bundled fallback. -->
+  <script src="menu-data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase-config.js"></script>
   <script src="admin.js"></script>
 </body>

@@ -87,23 +87,46 @@ function showLoadingState(){
 //   1. Render instantly from whatever we have for free — the last menu we
 //      successfully fetched (cached in localStorage), or the bundled
 //      FALLBACK_MENU_ITEMS on a first-ever visit. Zero network cost.
-//   2. Kick off the real Supabase fetch in the background. If it comes back
-//      with something different, quietly swap it in. If it fails (offline,
+//   2. Kick off the real menu fetch in the background, trying two live
+//      sources in order (see fetchLiveMenu). If it comes back with
+//      something different, quietly swap it in. If both fail (offline,
 //      Supabase down, weak signal timing out), the visitor never even
 //      notices — they're already looking at a perfectly good menu.
 // ---------------------------------------------------------------------------
 
 const MENU_CACHE_KEY = 'voi_menu_cache_v1';
 
+// Bump this if the cached shape ever changes (e.g. a new field renderMenus()
+// starts relying on). A mismatched version is treated as no cache at all,
+// rather than handing renderMenus() something it doesn't understand.
+const MENU_CACHE_SCHEMA = 1;
+
+// How long a single request is allowed to hang before we give up on it.
+// Doesn't affect first paint (that already happens from cache/fallback
+// before any of this starts) — it just stops a stalled request on a bad
+// connection from sitting open indefinitely.
+const FETCH_TIMEOUT_MS = 8000;
+
+// A small JSON file kept in sync with menu_items automatically — a Database
+// Webhook fires the "sync-menu-snapshot" Edge Function on every insert/
+// update/delete, which rewrites this file within a few seconds. Unlike
+// menu-data.js, nothing here ever needs a manual redeploy: it's live data,
+// not a bundled file, so a brand-new visitor's very first page load can get
+// an accurate menu without waiting on a full database round-trip. See the
+// Edge Function setup notes for how this is wired up.
+const MENU_SNAPSHOT_URL = () => `${SUPABASE_URL}/storage/v1/object/public/menu-cache/menu.json`;
+
 // Reads the last menu we successfully fetched. Returns null if there's
-// nothing cached yet, or if storage isn't available (private browsing,
-// storage disabled, quota issues) — callers just fall back gracefully.
+// nothing cached yet, it's from an old schema, or storage isn't available
+// (private browsing, storage disabled, quota issues) — callers just fall
+// back gracefully.
 function getCachedMenu(){
   try {
     const raw = localStorage.getItem(MENU_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return (parsed && parsed.data) ? parsed.data : null;
+    if (!parsed || parsed.schema !== MENU_CACHE_SCHEMA || !parsed.data) return null;
+    return parsed.data;
   } catch (err) {
     return null;
   }
@@ -111,9 +134,40 @@ function getCachedMenu(){
 
 function setCachedMenu(data){
   try {
-    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({ data, cachedAt: Date.now() }));
+    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({ schema: MENU_CACHE_SCHEMA, data, cachedAt: Date.now() }));
   } catch (err) {
     // Storage full/unavailable — not worth failing the page over, just skip it.
+  }
+}
+
+// Fast path: a single small JSON file over plain fetch — no client library,
+// no auth headers, no database round-trip. Throws on anything that isn't a
+// clean 200 with real data, so the caller falls through to the slower but
+// always-authoritative direct query below.
+async function fetchMenuFromSnapshot(){
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-PROJECT')) {
+    throw new Error('supabase-config.js has not been filled in yet');
+  }
+  const res = await fetch(MENU_SNAPSHOT_URL(), {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`Snapshot request failed: ${res.status}`);
+  const menuItems = await res.json();
+  if (!menuItems || Object.keys(menuItems).length === 0) throw new Error('Snapshot was empty');
+  return menuItems;
+}
+
+// Tries the fast snapshot first, falls through to the direct table query if
+// that fails for any reason (snapshot not set up yet, briefly out of sync,
+// storage hiccup, etc.) — either way the caller just gets a menu or a
+// clear failure, never has to know which source actually answered.
+async function fetchLiveMenu(){
+  try {
+    return await fetchMenuFromSnapshot();
+  } catch (err) {
+    console.warn('Menu snapshot unavailable, trying the direct query:', err.message);
+    return await fetchMenuFromSupabase();
   }
 }
 
@@ -133,7 +187,11 @@ async function fetchMenuFromSupabase(){
   const { data, error } = await client
     .from('menu_items')
     .select('*')
-    .order('sort_order', { ascending: true });
+    .order('sort_order', { ascending: true })
+    // If AbortSignal.timeout isn't supported by an ancient browser, this
+    // throws synchronously and init()'s try/catch falls back the same way
+    // a network failure would — never a reason to skip the timeout.
+    .abortSignal(AbortSignal.timeout(FETCH_TIMEOUT_MS));
 
   if (error) throw error;
   if (!data || data.length === 0) throw new Error('menu_items table is empty');
@@ -494,7 +552,7 @@ async function init(){
   // just means this takes longer — it never blocks what the visitor already
   // sees above.
   try {
-    const liveMenu = await fetchMenuFromSupabase();
+    const liveMenu = await fetchLiveMenu();
     setCachedMenu(liveMenu);
 
     // Don't yank the menu out from under someone mid-search.
