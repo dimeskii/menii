@@ -186,21 +186,78 @@ function search(){
 
     function filterMenuItems(query) {
       const normalized = query.trim().toLowerCase();
-      const items = document.querySelectorAll('.menu-item');
-      let visibleCount = 0;
+      let totalVisible = 0;
 
-      items.forEach(item => {
-        const name = item.querySelector('h3')?.textContent.toLowerCase() || '';
-        const desc = item.querySelector('.item-desc')?.textContent.toLowerCase() || '';
-        const matches = normalized === '' || name.includes(normalized) || desc.includes(normalized);
+      document.querySelectorAll('.menu-popular[data-title]').forEach(section => {
+        let sectionVisible = 0;
 
-        item.classList.toggle('is-hidden', !matches);
-        if (matches) visibleCount++;
+        // Filter individual menu items by their name
+        section.querySelectorAll('.menu-item').forEach(item => {
+          const name =
+            item.querySelector('h3')?.textContent.trim().toLowerCase() || '';
+
+          const matches =
+            normalized === '' || name.includes(normalized);
+
+          item.classList.toggle('is-hidden', !matches);
+
+          if (matches) {
+            sectionVisible++;
+          }
+        });
+
+        // Section-level search keyword
+        const searchText =
+          section.dataset.search?.trim().toLowerCase() || '';
+
+        const dataSearchMatches =
+          normalized === '' || searchText.includes(normalized);
+
+        const image = section.querySelector('img');
+
+        const sectionMatches =
+          normalized === '' ||
+          dataSearchMatches ||
+          sectionVisible > 0;
+
+        if (image) {
+          image.style.display = sectionMatches ? '' : 'none';
+        }
+
+        section.classList.toggle('is-hidden', !sectionMatches);
+
+        // Optional: if the section itself matched but no item matched,
+        // you may want all its items visible.
+        if (dataSearchMatches && normalized !== '') {
+          section.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.remove('is-hidden');
+          });
+
+          sectionVisible = section.querySelectorAll('.menu-item').length;
+        }
+
+        totalVisible += sectionVisible;
       });
 
-      searchEmpty.hidden = normalized === '' || visibleCount > 0;
+      // Gallery — same idea, name-only, hide the whole gallery if none match.
+      const gallery = document.querySelector('.drink-gallery');
+      if (gallery) {
+        let galleryVisible = 0;
 
-      // Scroll to results on the first keystroke, not every one
+        gallery.querySelectorAll('.photo-drink').forEach(photo => {
+          const name = photo.querySelector('h3')?.textContent.toLowerCase() || '';
+          const matches = normalized === '' || name.includes(normalized);
+
+          photo.classList.toggle('is-hidden', !matches);
+          if (matches) galleryVisible++;
+        });
+
+        gallery.classList.toggle('is-hidden', normalized !== '' && galleryVisible === 0);
+        totalVisible += galleryVisible;
+      }
+
+      searchEmpty.hidden = normalized === '' || totalVisible > 0;
+
       if (normalized !== '' && !hasScrolledToResults) {
         menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         hasScrolledToResults = true;
@@ -288,4 +345,3 @@ function headerAndPill(){
 
 headerAndPill();
 detectSection();
-

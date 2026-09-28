@@ -4,31 +4,105 @@
 // Prices are in Macedonian denari (ден).
 
 const MENU_ITEMS = {
-    food: {
+  food: {
     popular: [
-      { name: "Pinsa Ham", price: 320, desc: "Quests favourite - comes with spicy peppers" },
-      { name: "Cheeseburger", price: 280, desc: "Customer favourite - juicy beef, cheddar, lettuce & house sauce" },
-      { name: "Chicken Wrap", price: 240, desc: "Loaded with crispy chicken, fresh veggies & creamy sauce" },
-      { name: "Loaded Fries", price: 220, desc: "Crispy fries topped with cheese, bacon & special sauce" },
-      { name: "Chicken Wings", price: 260, desc: "Crispy wings tossed in your choice of spicy or BBQ sauce" },
-      { name: "Margherita Pizza", price: 320, desc: "Classic favourite - tomato sauce, mozzarella & fresh basil" },
-    ],
-    pizza: [
-      { name: "Pinsa Ham", price: 320, desc: "Quests favourite - comes with spicy peppers" },
-      { name: "Cheeseburger", price: 280, desc: "Customer favourite - juicy beef, cheddar, lettuce & house sauce" },
-      { name: "Chicken Wrap", price: 240, desc: "Loaded with crispy chicken, fresh veggies & creamy sauce" },
-      { name: "Loaded Fries", price: 220, desc: "Crispy fries topped with cheese, bacon & special sauce" },
-      { name: "Chicken Wings", price: 260, desc: "Crispy wings tossed in your choice of spicy or BBQ sauce" },
-      { name: "Margherita Pizza", price: 320, desc: "Classic favourite - tomato sauce, mozzarella & fresh basil" },
-    ],
-    hamburgers: [
-      { name: "Pinsa Ham", price: 320, desc: "Quests favourite - comes with spicy peppers" },
-      { name: "Cheeseburger", price: 280, desc: "Customer favourite - juicy beef, cheddar, lettuce & house sauce" },
-      { name: "Chicken Wrap", price: 240, desc: "Loaded with crispy chicken, fresh veggies & creamy sauce" },
-      { name: "Loaded Fries", price: 220, desc: "Crispy fries topped with cheese, bacon & special sauce" },
-      { name: "Chicken Wings", price: 260, desc: "Crispy wings tossed in your choice of spicy or BBQ sauce" },
-      { name: "Margherita Pizza", price: 320, desc: "Classic favourite - tomato sauce, mozzarella & fresh basil" },
-    ],
+    {
+      name: "Margherita Pizza",
+      price: 320,
+      desc: "Classic Italian pizza topped with tomato sauce, mozzarella, and fresh basil"
+    },
+    {
+      name: "Classic Cheeseburger",
+      price: 280,
+      desc: "Juicy beef patty with cheddar cheese, fresh lettuce, tomato, and house sauce"
+    },
+    {
+      name: "Crispy Chicken Wrap",
+      price: 240,
+      desc: "Crispy chicken wrapped with fresh vegetables and creamy garlic sauce"
+    },
+    {
+      name: "Loaded Fries",
+      price: 220,
+      desc: "Golden crispy fries topped with melted cheese, crispy bacon, and special sauce"
+    },
+    {
+      name: "BBQ Chicken Wings",
+      price: 260,
+      desc: "Tender chicken wings coated in smoky BBQ sauce"
+    },
+    {
+      name: "Ham & Cheese Pinsa",
+      price: 320,
+      desc: "Roman-style crispy pinsa topped with tomato sauce, mozzarella, ham, and oregano"
+    }
+  ],
+
+  pizza: [
+    {
+      name: "Margherita Pizza",
+      price: 280,
+      desc: "Classic tomato sauce, melted mozzarella, and fresh basil on a crispy crust"
+    },
+    {
+      name: "Pepperoni Pizza",
+      price: 350,
+      desc: "Traditional pizza topped with mozzarella, rich tomato sauce, and spicy pepperoni"
+    },
+    {
+      name: "Ham & Mushroom Pizza",
+      price: 340,
+      desc: "A delicious combination of sliced ham, mushrooms, mozzarella, and tomato sauce"
+    },
+    {
+      name: "Quattro Formaggi",
+      price: 380,
+      desc: "Creamy four-cheese pizza with mozzarella, gorgonzola, parmesan, and cheese blend"
+    },
+    {
+      name: "BBQ Chicken Pizza",
+      price: 360,
+      desc: "Grilled chicken, smoky BBQ sauce, mozzarella, red onion, and fresh herbs"
+    },
+    {
+      name: "Vegetarian Pizza",
+      price: 300,
+      desc: "Fresh bell peppers, mushrooms, olives, onions, mozzarella, and tomato sauce"
+    }
+  ],
+
+  hamburgers: [
+    {
+      name: "Classic Cheeseburger",
+      price: 280,
+      desc: "Juicy beef patty, cheddar cheese, lettuce, tomato, pickles, and house sauce"
+    },
+    {
+      name: "Double Smash Burger",
+      price: 380,
+      desc: "Two smashed beef patties with double cheddar, caramelized onions, and burger sauce"
+    },
+    {
+      name: "Crispy Chicken Burger",
+      price: 270,
+      desc: "Crispy fried chicken fillet with fresh lettuce, pickles, and creamy mayo"
+    },
+    {
+      name: "BBQ Bacon Burger",
+      price: 350,
+      desc: "Beef patty topped with crispy bacon, cheddar cheese, smoky BBQ sauce, and onions"
+    },
+    {
+      name: "Spicy Jalapeño Burger",
+      price: 320,
+      desc: "Beef patty with pepper jack cheese, jalapeños, fresh lettuce, and spicy house sauce"
+    },
+    {
+      name: "Classic Hamburger",
+      price: 250,
+      desc: "Grilled beef patty served with lettuce, tomato, onion, pickles, and signature sauce"
+    }
+  ]
   },
 
   drinks: {
