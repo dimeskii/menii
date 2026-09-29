@@ -22,7 +22,7 @@ function renderMenus(){
       ? `<div class="popular-img"><img src="${img}" alt="${imgAlt || ''}" loading="lazy" decoding="async"><p>${caption || ''}</p></div>`
       : '';
 
-    const taglineText = tagline ?? 'to begin the tale';
+    const taglineText = tagline ?? '';
 
     section.innerHTML = `
       ${popularImg}
@@ -213,15 +213,30 @@ function search(){
         const dataSearchMatches =
           normalized === '' || searchText.includes(normalized);
 
-        const image = section.querySelector('img');
+        const imageBox = section.querySelector('.popular-img');
 
         const sectionMatches =
           normalized === '' ||
           dataSearchMatches ||
           sectionVisible > 0;
 
-        if (image) {
-          image.style.display = sectionMatches ? '' : 'none';
+        // Only keep the section photo while searching if the query actually
+        // relates to it (its caption/alt or the section title). Otherwise a
+        // "pizza" search would show the Popular section's pinsa photo.
+        if (imageBox) {
+          const imgEl = imageBox.querySelector('img');
+          const imageText = [
+            imgEl?.alt || '',
+            imageBox.querySelector('p')?.textContent || '',
+            section.dataset.title || ''
+          ].join(' ').toLowerCase();
+
+          const imageMatches =
+            normalized === '' ||
+            dataSearchMatches ||
+            imageText.includes(normalized);
+
+          imageBox.style.display = sectionMatches && imageMatches ? '' : 'none';
         }
 
         section.classList.toggle('is-hidden', !sectionMatches);
