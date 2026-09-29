@@ -14,11 +14,11 @@
   --color-shadow: rgba(0, 0, 0, 0.4);
   --overlay-dark: rgba(0, 0, 0, 0.55);
 
-  --font-heading: 'Instrument Serif', serif;
-  --font-script: 'Jim Nightshade', cursive;
-  --font-logo: 'Lobster', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-mono: 'Roboto Mono', 'Courier New', monospace;
+  --font-heading: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-script: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; /* italic accent */
+  --font-logo: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --header-height: 64px;
   --gutter: clamp(16px, 5vw, 40px);
@@ -34,6 +34,10 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  font-synthesis: none; /* never fake bold/italic — only use real font weights */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 img {
@@ -95,9 +99,11 @@ header a img {
 
 .logo {
   color: var(--color-gold);
-  font-size: 27px;
+  font-size: 34px;
   font-family: var(--font-logo);
   letter-spacing: 0.5px;
+  line-height: 1;
+  font-weight: 400;
 }
 
 .nav-order {
@@ -257,8 +263,10 @@ header a img {
 
 .menu-hero-content h4 {
   font-family: var(--font-script);
+  font-style: italic;
   margin: 0 0 6px;
-  font-size: clamp(18px, 2.4vw, 24px);
+  font-weight: 400;
+  font-size: clamp(20px, 2.6vw, 26px);
   color: var(--color-gold-soft);
   text-shadow: 2px 2px 4px var(--color-shadow);
   letter-spacing: 1px;
@@ -290,6 +298,7 @@ header a img {
   font-family: var(--font-heading);
   color: var(--color-text);
   font-size: clamp(2.6rem, 9vw, 5rem);
+  font-weight: 400;
   margin: 0;
   line-height: 1.05;
 }
@@ -512,6 +521,7 @@ header a img {
   margin-bottom: 10px;
   color: white;
   font-family: var(--font-script);
+  font-style: italic;
   font-weight: 400;
   font-size: clamp(1.5rem, 3vw, 2rem);
 }
@@ -526,7 +536,7 @@ header a img {
 
 .menu-head h2 {
   color: #d89d07;
-  font-family: 'Instrument Serif', sans-serif;
+  font-family: var(--font-heading);
   font-size: clamp(1.7rem, 4.5vw, 2.6rem);
   font-weight: 400;
 }
@@ -540,6 +550,7 @@ header a img {
 
 .menu-head p {
   font-family: var(--font-script);
+  font-style: italic;
   font-size: clamp(18px, 2.4vw, 24px);
   white-space: nowrap;
   overflow: hidden;
@@ -583,6 +594,7 @@ header a img {
 
 .item-price {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1rem;
   font-weight: 600;
   color: #f3b310;
@@ -771,9 +783,9 @@ footer span {
 }
 
 .footer-title h2 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-heading);
   font-size: clamp(3rem, 20vw, 8rem);
-  font-weight: 700;
+  font-weight: 400;
   line-height: 0.95;
   letter-spacing: -0.04em;
   color: var(--color-gold-soft);
@@ -791,7 +803,7 @@ footer span {
 }
 
 .footer-title p {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
   font-size: clamp(0.75rem, 1.2vw, 0.95rem);
   font-weight: 400;
   line-height: 1.6;
@@ -808,17 +820,17 @@ footer span {
   max-width: 320px;
   padding: 28px 0;
   color: #fff;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-body);
   margin: 0 auto;
 }
 
 .footer-hours h4 {
   margin: 0 0 22px;
   font-size: 13.5px;
-  font-weight: bold;
+  font-weight: 600;
   letter-spacing: 2.5px;
   color: var(--color-gold-soft);
-  font-family: "Courier New", monospace;
+  font-family: var(--font-mono);
 }
 
 .hours-line {
@@ -876,16 +888,16 @@ footer span {
 .footer-contact {
   width: 100%;
   max-width: 320px;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-body);
 }
 
 .footer-contact h4 {
   margin: 0 0 22px;
   font-size: 13.5px;
-  font-weight: bold;
+  font-weight: 600;
   letter-spacing: 2.5px;
   color: var(--color-gold-soft);
-  font-family: "Courier New", monospace;
+  font-family: var(--font-mono);
 }
 
 .contact-text {
@@ -953,7 +965,7 @@ footer span {
 
 .footer-credit p {
   margin: 8px 0 12px 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
   font-size: 11px;
   letter-spacing: 0.08em;
   color: hsla(40, 45%, 100%, 0.4);
@@ -992,7 +1004,7 @@ footer span {
 
 /* ---- Very small phones (≤ 359px) --------------------------------------- */
 @media (max-width: 359px) {
-  .logo { font-size: 24px; }
+  .logo { font-size: 30px; }
   .nav-order { font-size: 13px; padding: 7px 12px; }
   .menu-nav-wrap { padding-inline: 40px; }
   .menu-nav-arrow { width: 26px; height: 26px; }
