@@ -2,7 +2,7 @@
 // A <section class="menu-popular" data-title="…" data-menu="food.popular" …> is all
 // a page needs — no more hand-written .menu-item markup per dish/drink.
 function renderMenus(){
-  const money = (price, nested) => nested ? `${price}<span>ден</span>` : `${price}ден`;
+  const money = (price, nested) => nested ? `${price}<span>mkd</span>` : `${price}mkd`;
 
   const getMenuList = (path) =>
     path.split('.').reduce((data, key) => data && data[key], MENU_ITEMS);
@@ -41,7 +41,7 @@ function renderMenus(){
     gallery.innerHTML = items.map(({ name, price, image }) => `
       <div class="photo-drink" data-bg="${image}">
         <h3>${name}</h3>
-        <span class="photo-item-price">${price}<span>ден</span></span>
+        <span class="photo-item-price">${price}<span>mkd</span></span>
       </div>`).join('');
 
     // These background photos are heavy — only fetch each one once it's about
